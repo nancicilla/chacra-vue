@@ -1,9 +1,7 @@
 import { chacraApi } from "@/api/chacraApi";
-import { useRoute } from "vue-router";
 import type { Jornalero } from "../interface/Jornalero.interface";
 export const createUpdateJornalero= async(jornalero:Partial<Jornalero>)=>{
     if(jornalero.id && jornalero.id!=null){
-        console.log(`entramos a editar el jornalero ${jornalero}`)
         await updateJornalero(jornalero)
         return
     }
@@ -14,9 +12,8 @@ export const createUpdateJornalero= async(jornalero:Partial<Jornalero>)=>{
 const  updateJornalero= async(jornalero:Partial<Jornalero>)=> {
     try {
         const id= jornalero.id
-        delete jornalero.id
-        
-   await chacraApi.patch(`/jornalero/${id}`,jornalero)
+        delete jornalero.id        
+        await chacraApi.patch(`/jornalero/${id}`,jornalero)
 
 
     } catch (error) {

@@ -103,7 +103,6 @@ function formatCell(value: unknown) {
 </script>
 
 <style scoped>
-/* Pequeños ajustes para una apariencia más 'elegante' */
 table { border-collapse: separate; border-spacing: 0; }
 thead th { background-clip: padding-box; }
 </style>

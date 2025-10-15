@@ -1,5 +1,5 @@
 <template>
-  <h1 class="text-3xl text-slate-50 text-center p-16 font-semibold">Producto</h1>
+  <h1 class="text-3xl text-slate-50 text-center p-16 font-semibold">ENTREGA</h1>
   <button @click="show = true" v-if="!show">
     <div class="flex items-center gap-3">
       <div
@@ -9,21 +9,37 @@
     </div>
 
   </button>
-
-
   <div class="py-5">
-    <MyModal :show="show" ancho-modal="pequenia" @close="show = false">
+    <MyModal :show="show" ancho-modal="grande" @close="show = false">
       <template #titulo>
-        <template v-if="modeEdit">
-          Editar Producto
+          <template v-if="modeEdit">
+          Editar Entrega
         </template>
         <template v-else>
-          Registra Producto
+          Registra Entrega
         </template>
       </template>
       <template #cuerpo>
-        <input v-model="producto.nombre" type="text" placeholder="Nombre del Producto" class="my-input" />
-        <input v-model="producto.descripcion" type="text" placeholder="Descripcion del Producto" class="my-input" />
+        <input  ref="inputRef" v-model="form.entrega.fechaEntrega" type="date" :min="toDay" @click="abrirCalendario" class="my-input" />
+       <select v-model="form.entrega.idjornalero" class="my-input">
+      <option class="my-input" disabled value="">Selecciona una opción</option>
+      <option class="my-input" v-for="j in jornaleros" :key="j.id" :value="j.id">
+        {{ j.nombrecompleto }}
+      </option>
+    </select>
+    <div class="drag-container">
+    <draggable
+      v-model="productos"
+      tag="ul"
+      class="list-group text-slate-700"
+    >
+      <template #item="{ element: item }">
+        <li class="list-group-item text-slate-950">
+          {{ item.text }}
+        </li>
+      </template>
+    </draggable>
+  </div>
       </template>
       <template #botones>
         <button @click="guardarInformacion"
@@ -46,13 +62,14 @@
     </template>
     <template #cell="{ row, col }">
       <div v-if="col.key === 'id'" class="flex px-3">
-        <button-table titulo="Editar Producto" @onsendinformation="EditarInformacion" :modelo="row">
+        <button-table titulo="Ver Reporte" @onsendinformation="EditarInformacion" :modelo="row">
           <template #cuerpo>
             <icon-edit></icon-edit>
           </template>
         </button-table>
-        <ButtonTable titulo="Eliminar Producto" @onsendinformation="EliminarInformacion" :modelo="row">
+        <ButtonTable titulo="Generar QR" @onsendinformation="EliminarInformacion" :modelo="row">
           <template #cuerpo>
+
             <icon-trash></icon-trash>
           </template>
         </ButtonTable>
@@ -63,7 +80,7 @@
 
 
     <template #empty>
-      <div class="text-gray-500">No hay Registro de Producto aún.</div>
+      <div class="text-gray-500">No hay Registro de ENTREGA aún.</div>
     </template>
   </TablaView>
   <div v-else>
@@ -73,85 +90,119 @@
 </template>
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
-import type {  Producto} from './interface/Producto.interface';
+import draggable from 'vuedraggable';
+import { createEntrega } from './actions/create-entrega.action';
+import type { Entrega } from './interface/Entrega.interface';
 import MyModal from '@/components/MyModal.vue';
 import TablaView from '@/components/TablaView.vue';
 import ButtonTable from '@/components/ButtonTable.vue';
 import IconTrash from '@/components/icons/IconTrash.vue';
 import IconEdit from '@/components/icons/IconEdit.vue';
 import IconPlus from '@/components/icons/IconPlus.vue';
-import { getProducto } from './actions/get-producto.action';
-import { createUpdateProduto } from './actions/create-update-prodcuto.action';
-import { deleteProducto } from './actions/delete-producto.action';
+import type { Jornalero } from '../jornalero/interface/Jornalero.interface';
+import { getJornaleros } from '../jornalero/actions/list-jornalero.action';
+import type { Producto } from '../producto/interface/Producto.interface';
+import { getProducto } from '../producto/actions/get-producto.action';
 const show = ref(false);
 const modeEdit = ref(false)
-const titulo= ref('Registrar Producto')
-const producto = reactive({
-    id:null,
-    nombre:'',
-    descripcion:''
-})
 const cargando= ref(true)
-const items:Producto[] = ref([]);
-const columns: Column<Producto>[] = [
-  { key: 'nombre', label: 'Producto' ,align: 'text-left'},
-  { key: 'descripcion', label: 'Descripcion' ,align: 'text-left'},
+const inputRef = ref<HTMLInputElement|null>(null);
+const items:Partial<Entrega>[] = ref([]);
+const jornaleros :Jornalero[]=ref([])
+const productos:Producto[]= ref([])
+  
+const form= reactive({
+  entrega:{
+    fechaEntrega:'',
+    idjornalero:0
+  },
+  detalle:[]
+})
+const toDay=ref('')
+const columns: Column<Entrega>[] = [
+  { key: 'fecha', label: 'Fecha Entrega' ,align: 'text-left'},
+  { key: 'nombre', label: 'Jornalero' ,align: 'text-left'},
   { key: 'id', label: 'Acciones', align: 'text-left' }
 ]
+
 
 
 onMounted(async() => {
 try {
     // Simular una llamada a la API para obtener los datos
-    const respuesta = await getProducto();
-     cargando.value = true;
-    items.value = respuesta;
-    
+     const listaJornalero = await getJornaleros();
+     const listaProducto=await getProducto()
+    // cargando.value = true;
+    productos.value= listaProducto
+    jornaleros.value=listaJornalero
+    // items.value = respuesta;
+   toDay.value=formatofecha( new Date())
 
   } catch (error) {
-    console.error('Error al obtener los productos:', error);
+    console.error('Error al obtener los Jornalero:', error);
   } finally {
+    // Finalizar el estado de carga
    cargando.value = false;
   }
    
 });
+const abrirCalendario=()=>{
+ inputRef.value?.showPicker()
+ 
+}
 const guardarInformacion = async () => {
-  if (modeEdit.value == false) {
-    if (producto.nombre != '') {
-      const nuevo: Partial<Producto> = { nombre: producto.nombre,descripcion:producto.descripcion }
-      await createUpdateProduto(nuevo)
-    }
-   
-  } else {
-    const actualizar: Partial<Producto> = { nombre: producto.nombre, id: producto.id,descripcion:producto.descripcion }
-    await createUpdateProduto(actualizar)
-  
-    modeEdit.value = false
-  }
-    items.value= await getProducto()
-  producto.nombre = ''
-  producto.descripcion=''
-  producto.id=null
-  show.value = false
+  // if (modeEdit.value == false) {
+  //   if (nombre.value != '') {
+  //     const jornalero: Partial<Jornalero> = { nombrecompleto: nombre.value }
+  //     await createUpdateJornalero(jornalero)
+  //   }
+  // } else {
+  //   const jornalero: Partial<Jornalero> = { nombrecompleto: nombre.value, id: id.value }
+  //   await createUpdateJornalero(jornalero)
+  //   items.value= await getJornaleros()
+  //   modeEdit.value = false
+  // }
+  // nombre.value = ''
+  // show.value = false
 
 
 }
 function onSort(key: string) { console.log('ordenar por', key) }
 function onRowClick(row: Jornalero) { console.log('fila', row) }
-const EditarInformacion = (modelo: Producto) => {
+const EditarInformacion = (modelo: any) => {
   modeEdit.value = true
-
-  producto.nombre = modelo.nombre
-  producto.descripcion=modelo.descripcion
-  producto.id=modelo.id
   show.value = true
 }
-const EliminarInformacion = async(modelo: Producto) => {
-let result = confirm(`Desea por eliminar Producto ${modelo.nombre}?`);
+const EliminarInformacion = async(modelo: any) => {
+let result = confirm(`Desea por eliminar la Entrega ${modelo}?`);
 if(result){
- await deleteProducto(modelo.id)
- items.value= await getProducto()
+//  await deleteJornalero(modelo.id)
+//  items.value= await getJornaleros()
 }
+}
+const formatofecha=(f)=>{
+ return `${f.getFullYear()}-${(f.getMonth()+1)}-${f.getDate()}`
 }
 
 </script>
+
+<style scoped>
+.drag-container {
+  padding: 16px;
+}
+
+.list-group {
+  list-style: none;
+  padding: 0;
+}
+
+.list-group-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: move; /* Muestra el cursor de movimiento */
+}
+</style>
+

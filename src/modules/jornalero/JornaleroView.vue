@@ -1,11 +1,6 @@
-<!--
-USO (ejemplo) — en el componente padre (TypeScript + Vue 3)-->
-
-
-
 <template>
   <h1 class="text-3xl text-slate-50 text-center p-16 font-semibold">JORNALERO</h1>
-  <button @click="show = true">
+  <button @click="show = true" v-if="!show">
     <div class="flex items-center gap-3">
       <div
         class="w-10 h-10 hover:bg-white/30 bg-white/20 rounded-lg flex items-center justify-center border border-white/30">
@@ -17,9 +12,14 @@ USO (ejemplo) — en el componente padre (TypeScript + Vue 3)-->
 
 
   <div class="py-5">
-    <MyModal :show="show" @close="show = false">
+    <MyModal :show="show" ancho-modal="pequenia" @close="show = false">
       <template #titulo>
-        Registrar Jornalero
+          <template v-if="modeEdit">
+          Editar Jornalero
+        </template>
+        <template v-else>
+          Registra Jornalero
+        </template>
       </template>
       <template #cuerpo>
         <input v-model="nombre" type="text" placeholder="Nombre del Jornalero" class="my-input" />
@@ -43,9 +43,6 @@ USO (ejemplo) — en el componente padre (TypeScript + Vue 3)-->
         <span class="text-sm font-semibold">{{ column.label }}</span>
       </div>
     </template>
-
-
-    <!-- slot cell personalizado (por ejemplo para la columna de acciones) -->
     <template #cell="{ row, col }">
       <div v-if="col.key === 'id'" class="flex px-3">
         <button-table titulo="Editar Jornalero" @onsendinformation="EditarInformacion" :modelo="row">
@@ -73,22 +70,19 @@ USO (ejemplo) — en el componente padre (TypeScript + Vue 3)-->
     <h1 class="text-white"> Cargando Informacion</h1>
   </div>
 
-<dialog open>
-  <p>Greetings, one and all!</p>
-</dialog>
 </template>
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import MyModal from '@/components/MyModal.vue';
-import IconPlus from '@/components/icons/IconPlus.vue';
 import { createUpdateJornalero } from './actions/create-update-jornalero.action';
 import { getJornaleros } from './actions/list-jornalero.action';
+import { deleteJornalero } from './actions/delete-jornalero.action';
 import type { Jornalero } from './interface/Jornalero.interface';
+import MyModal from '@/components/MyModal.vue';
 import TablaView from '@/components/TablaView.vue';
 import ButtonTable from '@/components/ButtonTable.vue';
 import IconTrash from '@/components/icons/IconTrash.vue';
 import IconEdit from '@/components/icons/IconEdit.vue';
-import { deleteJornalero } from './actions/delete-jornalero.action';
+import IconPlus from '@/components/icons/IconPlus.vue';
 const show = ref(false);
 const modeEdit = ref(false)
 const nombre = ref('')
@@ -105,16 +99,12 @@ onMounted(async() => {
 try {
     // Simular una llamada a la API para obtener los datos
     const respuesta = await getJornaleros();
-  console.log(respuesta)
-    
-    // Asignar los datos recibidos a la referencia reactiva
-    // La reactividad de Vue se encargará de actualizar el DOM automáticamente
-     cargando.value = true;
+    cargando.value = true;
     items.value = respuesta;
     console.log(items)
 
   } catch (error) {
-    console.error('Error al obtener los posts:', error);
+    console.error('Error al obtener los Jornalero:', error);
   } finally {
     // Finalizar el estado de carga
    cargando.value = false;
