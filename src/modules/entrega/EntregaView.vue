@@ -1,121 +1,218 @@
 <template>
-  <div class="drag-drop-demo dropzone" @dragover.prevent
-      @dragenter="onDragEnter"
-      @dragleave="onDragLeave"
-      @drop="onDrop">
-                <div
-                  v-for="item in items"
-                  :key="item.id"
-                  class="draggable"
-                  draggable="true"
-                  @dragstart="onDragStart(item,'i')"
-                >
-                  {{ item.name }}
-                </div>
-                </div>
+  <h1 class="text-3xl text-slate-50 text-center p-16 font-semibold">ENTREGA</h1>
+  <button @click="show = true" v-if="!show">
+    <div class="flex items-center gap-3">
+      <div
+        class="w-10 h-10 hover:bg-white/30 bg-white/20 rounded-lg flex items-center justify-center border border-white/30">
+        <icon-plus></icon-plus>
+      </div>
+    </div>
 
-    <div
-      class="dropzone"
-      @dragover.prevent
-      @dragenter="onDragEnter"
-      @dragleave="onDragLeave"
-      @drop="onDrop"
-    >
-      
-      <div  class="drag-drop-demo dropzone">
-        <p v-if="itemsDroped.length==0" class="text-white">Suelta aquí</p>
-                      <div v-else
-                    v-for="item in itemsDroped"
-                    :key="item.id"
-                    class="draggable"
-                    draggable="true"
-                    @dragstart="onDragStart(item,'d')"
-                  >
-                    {{ item.name }}
-                  </div>
-      </div>
-      </div>
-    
+  </button>
+  <div class="py-5">
+    <MyModal :show="show" ancho-modal="grande" @close="show = false">
+      <template #titulo>
+          <template v-if="modeEdit">
+          Editar Entrega
+        </template>
+        <template v-else>
+          Registra Entrega
+        </template>
+      </template>
+      <template #cuerpo>
+        <input  ref="inputRef" v-model="form.entrega.fechaEntrega" type="date" :min="toDay" @click="abrirCalendario" class="my-input" />
+       <select v-model="form.entrega.idjornalero" class="my-input">
+      <option class="my-input" disabled value="">Selecciona una opción</option>
+      <option class="my-input" v-for="j in jornaleros" :key="j.id" :value="j.id">
+        {{ j.nombrecompleto }}
+      </option>
+    </select>
+    <div>
+      <h6>Lista de Productos</h6>
+       <ContenedorDraggable titulo="Suelta aquí para quitar el producto" :items="productos" origen="i" @actualizarlista="actualizarLista" @actualizarelemento="establecerElemento"></ContenedorDraggable>
+     <h6>Lista de Productos Entregados</h6>
+       <ContenedorDraggable titulo="Suelta aquí para asignar el producto" :items="productosDroped" origen="d" @actualizarlista="actualizarLista" @actualizarelemento="establecerElemento"></ContenedorDraggable>
   
+    </div>
+ 
+      </template>
+      <template #botones>
+        <button @click="guardarInformacion"
+          class="inline-flex items-end justify-end border align-top select-none font-sans font-medium text-center px-4 py-2 text-white text-sm font-medium rounded-lg verde border border-white/50 backdrop-blur-sm shadow-[inset_0_1px_0px_rgba(255,255,255,0.75),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15)] hover:bg-white/30 transition-all duration-300 before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-br before:from-white/60 before:via-transparent before:to-transparent before:opacity-70 before:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:bg-gradient-to-tl after:from-white/30 after:via-transparent after:to-transparent after:opacity-50 after:pointer-events-none transition antialiased">Guardar</button>
+        <button @click="show=false"
+          class="inline-flex items-end justify-end border align-top select-none font-sans font-medium text-center p-4 py-2 text-white text-sm font-medium rounded-lg rojo border border-white/50 backdrop-blur-sm shadow-[inset_0_1px_0px_rgba(255,255,255,0.75),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15)] hover:bg-white/30 transition-all duration-300 before:absolute before:inset-0 before:rounded-lg before:bg-gradient-to-br before:from-white/60 before:via-transparent before:to-transparent before:opacity-70 before:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:bg-gradient-to-tl after:from-white/30 after:via-transparent after:to-transparent after:opacity-50 after:pointer-events-none transition antialiased">Cancelar</button>
+
+      </template>
+    </MyModal>
+  </div>
+
+
+
+  <TablaView :items="items" :columns="columns" @sort="onSort" @row-click="onRowClick" v-if="!cargando">
+    <!-- slot header personalizado -->
+    <template #header="{ column }">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-semibold">{{ column.label }}</span>
+      </div>
+    </template>
+    <template #cell="{ row, col }">
+      <div v-if="col.key === 'id'" class="flex px-3">
+        <button-table titulo="Ver Reporte" @onsendinformation="EditarInformacion" :modelo="row">
+          <template #cuerpo>
+            <icon-edit></icon-edit>
+          </template>
+        </button-table>
+        <ButtonTable titulo="Generar QR" @onsendinformation="EliminarInformacion" :modelo="row">
+          <template #cuerpo>
+
+            <icon-trash></icon-trash>
+          </template>
+        </ButtonTable>
+
+      </div>
+      <div v-else>{{ row[col.key] }}</div>
+    </template>
+
+
+    <template #empty>
+      <div class="text-gray-500">No hay Registro de ENTREGA aún.</div>
+    </template>
+  </TablaView>
+  <div v-else>
+    <h1 class="text-white"> Cargando Informacion</h1>
+  </div>
+
 </template>
+<script setup lang="ts">
+import { onMounted, reactive, ref } from 'vue';
+import ContenedorDraggable from '@/components/ContenedorDraggable.vue'
+import { createEntrega } from './actions/create-entrega.action';
+import type { Entrega } from './interface/Entrega.interface';
+import MyModal from '@/components/MyModal.vue';
+import TablaView from '@/components/TablaView.vue';
+import ButtonTable from '@/components/ButtonTable.vue';
+import IconTrash from '@/components/icons/IconTrash.vue';
+import IconEdit from '@/components/icons/IconEdit.vue';
+import IconPlus from '@/components/icons/IconPlus.vue';
+import type { Jornalero } from '../jornalero/interface/Jornalero.interface';
+import { getJornaleros } from '../jornalero/actions/list-jornalero.action';
+import type { Producto } from '../producto/interface/Producto.interface';
+import { getProducto } from '../producto/actions/get-producto.action';
+const show = ref(false);
+const modeEdit = ref(false)
+const cargando= ref(true)
+const inputRef = ref<HTMLInputElement|null>(null);
+const items:Partial<Entrega>[] = ref([]);
+const jornaleros :Jornalero[]=ref([])
+const productos:Producto[]= ref([])
+const productosDroped= ref([])
+const item=ref([])
+const origen=ref([])
+const form= reactive({
+  entrega:{
+    fechaEntrega:'',
+    idjornalero:0
+  },
+  detalle:[]
+})
+const toDay=ref('')
+const columns: Column<Entrega>[] = [
+  { key: 'fecha', label: 'Fecha Entrega' ,align: 'text-left'},
+  { key: 'nombre', label: 'Jornalero' ,align: 'text-left'},
+  { key: 'id', label: 'Acciones', align: 'text-left' }
+]
 
-<script setup>
-import { ref } from 'vue'
-
-const items = ref([
-  { id: 1, name: 'Elemento A' },
-  { id: 2, name: 'Elemento B' },
-  { id: 3, name: 'Elemento C' },
-])
-const itemsDroped= ref([])
-
-const draggedItem = ref(null)
-const origeContenedor= ref('')
 
 
-const onDragStart = (item, contenedor) => {
-  draggedItem.value = item
-  console.log("en onDragStart ",{contenedor,origenContenedor: origeContenedor.value})
- origeContenedor.value=contenedor
-   console.log("en onDragStart despues asignacion ",{contenedor,origenContenedor: origeContenedor.value})
-  console.log('Inicio de arrastre:', item.name)
-}
+onMounted(async() => {
+try {
+    // Simular una llamada a la API para obtener los datos
+     const listaJornalero = await getJornaleros();
+     const listaProducto=await getProducto()
+    // cargando.value = true;
+    productos.value= listaProducto
+    jornaleros.value=listaJornalero
+    // items.value = respuesta;
+   toDay.value=formatofecha( new Date())
 
-const onDragEnter = (e) => {
-  e.target.classList.add('over')
-}
-
-const onDragLeave = (e) => {
-  e.target.classList.remove('over')
-}
-
-const onDrop = (e) => {
-    console.log("antes de terminar de soltar",{items,itemsDroped})
-  e.target.classList.remove('over')
-
-  if(origeContenedor.value=='i'){
-    console.log("por la izquierad", items.value.filter(elemento=>elemento.id!=draggedItem.value.id))
-  itemsDroped.value.push(draggedItem.value)
-  items.value= items.value.filter(elemento=>elemento.id!=draggedItem.value.id)
-
-  
-  }else{
-    console.log("por la derecha")
-      items.value.push(draggedItem.value)
-itemsDroped.value= itemsDroped.value.filter(elemento=>elemento.id!=draggedItem.value.id)
+  } catch (error) {
+    console.error('Error al obtener los Jornalero:', error);
+  } finally {
+    // Finalizar el estado de carga
+   cargando.value = false;
   }
-    console.log("despues de terminar de soltar",{items,itemsDroped})
+   
+});
+const abrirCalendario=()=>{
+ inputRef.value?.showPicker()
+ 
+}
+const guardarInformacion = async () => {
+  // if (modeEdit.value == false) {
+  //   if (nombre.value != '') {
+  //     const jornalero: Partial<Jornalero> = { nombrecompleto: nombre.value }
+  //     await createUpdateJornalero(jornalero)
+  //   }
+  // } else {
+  //   const jornalero: Partial<Jornalero> = { nombrecompleto: nombre.value, id: id.value }
+  //   await createUpdateJornalero(jornalero)
+  //   items.value= await getJornaleros()
+  //   modeEdit.value = false
+  // }
+  // nombre.value = ''
+  // show.value = false
 
 
+}
+function onSort(key: string) { console.log('ordenar por', key) }
+function onRowClick(row: Jornalero) { console.log('fila', row) }
+const EditarInformacion = (modelo: any) => {
+  modeEdit.value = true
+  show.value = true
+}
+const EliminarInformacion = async(modelo: any) => {
+let result = confirm(`Desea por eliminar la Entrega ${modelo}?`);
+if(result){
+//  await deleteJornalero(modelo.id)
+//  items.value= await getJornaleros()
+}
+}
+const formatofecha=(f)=>{
+ return `${f.getFullYear()}-${(f.getMonth()+1)}-${f.getDate()}`
+}
+
+const establecerElemento=(itenenviado, origenenviado)=>{
+  item.value=itenenviado
+  origen.value=origenenviado
+  
+}
+const actualizarLista=()=>{
+ if(origen.value=='i'){
+  // viene del contenedor izquierdo
+  productosDroped.value.push(item.value)
+  productos.value= productos.value.filter(elemento=>elemento.id!=item.value.id)
+ }else{
+  // viene del contenedor derecho
+  productos.value.push(item.value)
+ productosDroped.value= productosDroped.value.filter(elemento=>elemento.id!=item.value.id)
+ }
 }
 </script>
 
 <style scoped>
-.drag-drop-demo {
-  display: flex;
-  gap: 2rem;
+
+.list-group {
+  list-style: none;
+  padding: 0;
 }
 
-.draggable {
-  background: #42b983;
-  color: white;
-  padding: 8px 12px;
-  cursor: grab;
+.list-group-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
   border-radius: 4px;
-}
-
-.dropzone {
-  width: 200px;
-  height: 150px;
-  border: 2px dashed #ccc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.3s;
-}
-
-.dropzone.over {
-  background: #e0ffe0;
-  border-color: #42b983;
+  cursor: move; /* Muestra el cursor de movimiento */
 }
 </style>
+

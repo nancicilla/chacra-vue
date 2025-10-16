@@ -13,3 +13,6 @@
 .rojo{
     @apply bg-red-950
 }
+.my-item{
+    @apply text-white hover:bg-white/30 bg-white/20  flex items-center justify-center border  border-white/30 
+}
